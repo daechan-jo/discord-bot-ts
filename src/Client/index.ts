@@ -1,11 +1,11 @@
-import { CommandRegistrationOptions } from "../Typings/Client";
+import { CommandRegistrationOptions } from "../Typings";
 import {
   ApplicationCommandDataResolvable,
   Client,
   Collection,
   GatewayIntentBits,
 } from "discord.js";
-import { Command } from "../Typings/Command";
+import { Command } from "../Typings";
 import { readdirSync } from "fs";
 import path from "path";
 import * as dotenv from "dotenv";
@@ -74,7 +74,7 @@ class Bot extends Client {
         console.error("[CLIENT]: Error connecting: ", err);
       });
 
-    this.registerModules();
+    await this.registerModules();
     const eventDirectory = path.join(__dirname, "..", "Events");
     const eventFiles = readdirSync(eventDirectory);
 

@@ -1,83 +1,90 @@
 import { Player } from "discord-player";
 import { ApplicationCommandOptionType, EmbedBuilder } from "discord.js";
 import { Command } from "../../Typings";
+import { SoundCloudExtractor } from "@discord-player/extractor";
+import { YoutubeiExtractor } from "discord-player-youtubei";
 
 export const slash: Command = {
-  name: "play",
-  description: "Play a song",
-  voiceChannel: true,
-  options: [
-    {
-      name: "song",
-      description: "the song you want to play",
-      type: ApplicationCommandOptionType.String,
-      required: true,
-    },
-  ],
-  run: async ({ client, interaction }) => {
-    const player = new Player(client);
-    const embed = new EmbedBuilder();
-    const query = interaction.options.get("song")?.value as string;
-    const searchResult = await player.search(query, {
-      requestedBy: interaction.member,
-    });
-    const track = searchResult.tracks[0];
-    const queue = await player.createQueue(interaction.guild!, {
-      leaveOnEnd: true,
-      leaveOnStop: true,
-      initialVolume: 60,
-      spotifyBridge: true,
-      ytdlOptions: {
-        quality: "highestaudio",
-        highWaterMark: 1 << 25,
-      },
-    });
+	name: "노지재생",
+	description: "노래재생",
+	voiceChannel: true,
+	options: [
+		{
+			name: "노래",
+			description: "재생하고 싶은 노래",
+			type: ApplicationCommandOptionType.String,
+			required: true,
+		},
+	],
+	run: async ({ client, interaction }) => {
+		const player = new Player(client);
 
-    if (!searchResult) {
-      await queue.destroy();
-      return interaction.editReply({
-        content: `Track **${query}** not found!`,
-      });
-    }
+		// YouTube와 SoundCloud 추출기 등록
+		await player.extractors.register(YoutubeiExtractor, {});
+		await player.extractors.register(SoundCloudExtractor, {});
 
-    try {
-      if (!queue.connection)
-        await queue.connect(interaction.member.voice.channel!);
-    } catch {
-      await player.deleteQueue(interaction.guildId!);
-      return interaction.editReply({
-        content: `You need join a channel`,
-      });
-    }
+		player.on("error", (error) => {
+			console.error(`Player error: ${error.message}`);
+		});
 
-    if (!queue.connection) {
-      await queue.connect(interaction.member.voice.channel!);
-      await queue.play(track);
-    } else {
-      queue.addTrack(track);
-    }
+		const embed = new EmbedBuilder();
+		const query = interaction.options.get("노래")?.value as string;
 
-    player.on("trackEnd", async () => {
-      if (!queue.connection) await queue.play(track);
-    });
+		try {
+			const searchResult = await player.search(query, {
+				requestedBy: interaction.member,
+			});
 
-    await embed
-      .setDescription(
-        `Search: ${query}\n` +
-          `Requested by: ${interaction.member}\n` +
-          `Playing: ${track.title}`
-      )
-      .setColor("DarkVividPink")
-      .setImage(track.thumbnail)
-      .setTitle(track.title)
-      .setURL(track.url);
+			if (!searchResult || !searchResult.tracks.length) {
+				console.error(`쿼리에 대한 트랙을 찾을 수 없습니다: ${query}`);
+				return interaction.editReply({
+					content: `Track **${query}** not found!`,
+				});
+			}
 
-    await interaction.followUp({ embeds: [embed] });
+			const track = searchResult.tracks[0];
+			let queue = player.nodes.create(interaction.guild!, {
+				metadata: {
+					channel: interaction.channel,
+					requestedBy: interaction.member,
+				},
+				leaveOnEnd: true,
+				leaveOnEmpty: true,
+				leaveOnStop: true,
+				volume: 60,
+			});
 
-    searchResult.playlist
-      ? queue.addTracks(searchResult.tracks)
-      : queue.addTrack(track);
+			try {
+				if (!queue.connection) await queue.connect(interaction.member.voice.channel!);
+			} catch (error) {
+				console.error(`음성 채널에 연결하지 못했습니다: ${error}`);
+				player.nodes.delete(interaction.guildId!);
+				return interaction.editReply({
+					content: `음성채널에 입장해주세요.`,
+				});
+			}
 
-    if (!queue.playing) await queue.play();
-  },
+			queue.addTrack(track);
+
+			embed
+				.setDescription(
+					`Search: ${query}\n` +
+					`Requested by: ${interaction.member}\n` +
+					`Playing: ${track.title}`
+				)
+				.setColor("DarkVividPink")
+				.setImage(track.thumbnail)
+				.setTitle(track.title)
+				.setURL(track.url);
+
+			await interaction.followUp({ embeds: [embed] });
+
+			if (!queue.node.isPlaying()) await queue.node.play();
+		} catch (error) {
+			console.error(`재생 명령을 처리하는 동안 오류가 발생했습니다: ${error}`);
+			return interaction.editReply({
+				content: `월급이 밀려서 노래를 부를수가 엄습니다.`,
+			});
+		}
+	},
 };
