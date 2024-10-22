@@ -1,7 +1,7 @@
 import { Command } from "../../Typings";
 
 export const slash: Command = {
-  name: "ping",
+  name: "노지핑",
   description: ":comet:Show the ms!.",
   run: ({ interaction }) => {
     return interaction.followUp({

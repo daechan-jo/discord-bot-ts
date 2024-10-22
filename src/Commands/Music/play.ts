@@ -80,6 +80,15 @@ export const slash: Command = {
 			await interaction.followUp({ embeds: [embed] });
 
 			if (!queue.node.isPlaying()) await queue.node.play();
+
+			setTimeout(async () => {
+				try {
+					await interaction.deleteReply();
+				} catch (error) {
+					console.error("메시지를 삭제하는 동안 오류가 발생했습니다:", error);
+				}
+			}, 5000); // 5000ms = 5초
+
 		} catch (error) {
 			console.error(`재생 명령을 처리하는 동안 오류가 발생했습니다: ${error}`);
 			return interaction.editReply({

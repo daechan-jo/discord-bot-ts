@@ -10,11 +10,19 @@ export const slash: Command = {
 		const queue = player.nodes.get(interaction.guild!);
 
 		if (!queue || !queue.connection) {
-			if (!interaction.replied && !interaction.deferred) {
-				return interaction.reply({ content: "으걈ㄴ럄재디알ㅁ나램ㄴㄷ릩퇴에에에에그그그그ㅡ근!!! 아무도 나를 막을 수 없스셈", ephemeral: true });
-			} else {
-				return interaction.followUp({ content: "으걈ㄴ럄재디알ㅁ나램ㄴㄷ릩퇴에에에에그그그그ㅡ근!!! 아무도 나를 막을 수 없스셈", ephemeral: true });
-			}
+			const messageContent = "으걈ㄴ럄재디알ㅁ나램ㄴㄷ릩퇴에에에에그그그그ㅡ근!!! 아무도 나를 막을 수 없스셈";
+			const message = !interaction.replied && !interaction.deferred
+				? await interaction.reply({ content: messageContent, fetchReply: true })
+				: await interaction.followUp({ content: messageContent, fetchReply: true });
+
+			setTimeout(async () => {
+				try {
+					await message.delete();
+				} catch (error) {
+					console.error("메시지를 삭제하는 동안 오류가 발생했습니다:", error);
+				}
+			}, 5000);
+			return;
 		}
 
 		if (queue.connection) {
@@ -24,10 +32,17 @@ export const slash: Command = {
 			queue.delete();
 		}
 
-		if (!interaction.replied && !interaction.deferred) {
-			await interaction.reply({ content: "봇의 연결이 끊어졌습니다." });
-		} else {
-			await interaction.followUp({ content: "봇의 연결이 끊어졌습니다." });
-		}
+		const messageContent = "으걈ㄴ럄재디알ㅁ나램ㄴㄷ릩퇴에에에에그그그그ㅡ근!!! 아무도 나를 막을 수 없스셈";
+		const message = !interaction.replied && !interaction.deferred
+			? await interaction.reply({ content: messageContent, fetchReply: true })
+			: await interaction.followUp({ content: messageContent, fetchReply: true });
+
+		setTimeout(async () => {
+			try {
+				await message.delete();
+			} catch (error) {
+				console.error("메시지를 삭제하는 동안 오류가 발생했습니다:", error);
+			}
+		}, 5000);
 	},
 };
