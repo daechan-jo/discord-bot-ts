@@ -4,8 +4,24 @@ import { Command } from "../../Typings";
 import { SoundCloudExtractor } from "@discord-player/extractor";
 import { YoutubeiExtractor } from "discord-player-youtubei";
 
+let player: Player | null = null;
+
+export const initPlayer = (client: any) => {
+	if (!player) {
+		player = new Player(client);
+
+		// YouTube와 SoundCloud 추출기 등록
+		player.extractors.register(YoutubeiExtractor, {});
+		player.extractors.register(SoundCloudExtractor, {});
+
+		player.on("error", (error) => {
+			console.error(`Player error: ${error.message}`);
+		});
+	}
+};
+
 export const slash: Command = {
-	name: "노지재생",
+	name: "노래재생",
 	description: "노래재생",
 	voiceChannel: true,
 	options: [
@@ -17,21 +33,13 @@ export const slash: Command = {
 		},
 	],
 	run: async ({ client, interaction }) => {
-		const player = new Player(client);
-
-		// YouTube와 SoundCloud 추출기 등록
-		await player.extractors.register(YoutubeiExtractor, {});
-		await player.extractors.register(SoundCloudExtractor, {});
-
-		player.on("error", (error) => {
-			console.error(`Player error: ${error.message}`);
-		});
+		initPlayer(client);
 
 		const embed = new EmbedBuilder();
 		const query = interaction.options.get("노래")?.value as string;
 
 		try {
-			const searchResult = await player.search(query, {
+			const searchResult = await player!.search(query, {
 				requestedBy: interaction.member,
 			});
 
@@ -43,22 +51,31 @@ export const slash: Command = {
 			}
 
 			const track = searchResult.tracks[0];
-			let queue = player.nodes.create(interaction.guild!, {
-				metadata: {
-					channel: interaction.channel,
-					requestedBy: interaction.member,
-				},
-				leaveOnEnd: true,
-				leaveOnEmpty: true,
-				leaveOnStop: true,
-				volume: 60,
-			});
+			let queue = player!.nodes.get(interaction.guildId!);
+
+			if (!queue) {
+				queue = player!.nodes.create(interaction.guild!, {
+					metadata: {
+						channel: interaction.channel,
+						requestedBy: interaction.member,
+					},
+					leaveOnEnd: true,
+					leaveOnEmpty: true,
+					leaveOnStop: true,
+					volume: 60,
+				});
+			}
 
 			try {
 				if (!queue.connection) await queue.connect(interaction.member.voice.channel!);
+
+				const voiceChannel = interaction.member.voice.channel;
+				if (voiceChannel && voiceChannel.isVoiceBased()) {
+					await voiceChannel.setBitrate(64000);
+				}
 			} catch (error) {
 				console.error(`음성 채널에 연결하지 못했습니다: ${error}`);
-				player.nodes.delete(interaction.guildId!);
+				player!.nodes.delete(interaction.guildId!);
 				return interaction.editReply({
 					content: `음성채널에 입장해주세요.`,
 				});
