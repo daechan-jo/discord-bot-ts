@@ -43,7 +43,6 @@ export const slash: Command = {
 
 			const member = interaction.member as GuildMember;
 
-			// 타임아웃 및 에러 핸들링 개선
 			try {
 				await queue.connect(member.voice.channel!);
 				console.log("재연결에 성공했습니다.");
@@ -57,10 +56,13 @@ export const slash: Command = {
 				// 재생 시작
 				if (!queue.node.isPlaying()) await queue.node.play();
 
-				await interaction.reply("재연결이 완료되었습니다.");
+				if (!interaction.replied && !interaction.deferred) {
+					await interaction.reply("재연결이 완료되었습니다.");
+				}
 			} catch (error) {
 				console.error("재연결 시도 중 오류 발생:", error);
 
+				// 다시 확인하여 중복 응답 방지
 				if (!interaction.replied && !interaction.deferred) {
 					await interaction.reply({
 						content: "재연결에 실패했습니다. 다시 시도해주세요.",
@@ -71,7 +73,7 @@ export const slash: Command = {
 		} catch (error) {
 			console.error("재연결에 실패했습니다:", error);
 
-			// 이미 응답이 전송되었는지 확인 후 추가 응답 방지
+			// 응답 여부 확인 후 오류 메시지 전송
 			if (!interaction.replied && !interaction.deferred) {
 				await interaction.reply("재연결에 실패했습니다. 다시 시도해주세요.");
 			}
