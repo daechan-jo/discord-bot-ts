@@ -22,7 +22,7 @@ export const initPlayer = (client: any) => {
 };
 
 export const slash: Command = {
-	name: "노래재생",
+	name: "노지재생",
 	description: "노래재생",
 	voiceChannel: true,
 	options: [
