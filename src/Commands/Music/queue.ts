@@ -37,16 +37,8 @@ export const slash: Command = {
 			.setColor("DarkVividPink")
 			.setFooter({ text: `총 ${queue.tracks.size}개의 트랙` });
 
-		const message = !interaction.replied && !interaction.deferred
+		 !interaction.replied && !interaction.deferred
 			? await interaction.reply({ embeds: [embed], fetchReply: true })
 			: await interaction.followUp({ embeds: [embed], fetchReply: true });
-
-		setTimeout(async () => {
-			try {
-				await message.delete();
-			} catch (error) {
-				console.error("메시지를 삭제하는 동안 오류가 발생했습니다:", error);
-			}
-		}, 5000);
 	},
 };

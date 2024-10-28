@@ -21,7 +21,7 @@ export const initPlayer = (client: any) => {
 };
 
 export const slash: Command = {
-	name: "노래재생",
+	name: "노지재생",
 	description: "노래재생",
 	voiceChannel: true,
 	options: [
@@ -42,11 +42,12 @@ export const slash: Command = {
 			const searchResult = await player!.search(query, {
 				requestedBy: interaction.member,
 			});
+			console.log(searchResult)
 
 			if (!searchResult || !searchResult.tracks.length) {
 				console.error(`쿼리에 대한 트랙을 찾을 수 없습니다: ${query}`);
 				return interaction.editReply({
-					content: `Track **${query}** not found!`,
+					content: `쿼리에 대한 트랙을 찾을 수 없습니다: ${query}`,
 				});
 			}
 
