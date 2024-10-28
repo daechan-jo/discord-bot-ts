@@ -43,7 +43,6 @@ export const slash: Command = {
 			const searchResult = await player!.search(query, {
 				requestedBy: interaction.member,
 			});
-			console.log(searchResult)
 
 			if (!searchResult || !searchResult.tracks.length) {
 				console.error(`쿼리에 대한 트랙을 찾을 수 없습니다: ${query}`);

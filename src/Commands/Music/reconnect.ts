@@ -1,6 +1,6 @@
-import {CommandInteraction, GuildMember} from "discord.js";
-import {Command} from "../../Typings";
-import {Player, Track} from "discord-player";
+import { CommandInteraction, GuildMember } from "discord.js";
+import { Command } from "../../Typings";
+import { Track, Player } from "discord-player";
 
 export const slash: Command = {
 	name: "노지재연결",
@@ -22,7 +22,7 @@ export const slash: Command = {
 		}
 
 		try {
-			const currentTracks = queue.tracks.toArray() as Track[]; // 배열로 변환
+			const currentTracks = queue.tracks.toArray() as Track[];
 			const currentTrack = queue.currentTrack as Track | null;
 
 			// 대기열 비우기 및 연결 해제
@@ -41,24 +41,40 @@ export const slash: Command = {
 				volume: 60,
 			});
 
-			// member를 GuildMember 타입으로 단언하여 voice 채널에 접근
 			const member = interaction.member as GuildMember;
-			await queue.connect(member.voice.channel!);
-			console.log("재연결에 성공했습니다.");
 
-			// 대기열 복원
-			if (currentTrack) queue.addTrack(currentTrack);
-			for (const track of currentTracks) {
-				queue.addTrack(track);
+			// 타임아웃 및 에러 핸들링 개선
+			try {
+				await queue.connect(member.voice.channel!);
+				console.log("재연결에 성공했습니다.");
+
+				// 대기열 복원
+				if (currentTrack) queue.addTrack(currentTrack);
+				for (const track of currentTracks) {
+					queue.addTrack(track);
+				}
+
+				// 재생 시작
+				if (!queue.node.isPlaying()) await queue.node.play();
+
+				await interaction.reply("재연결이 완료되었습니다.");
+			} catch (error) {
+				console.error("재연결 시도 중 오류 발생:", error);
+
+				if (!interaction.replied && !interaction.deferred) {
+					await interaction.reply({
+						content: "재연결에 실패했습니다. 다시 시도해주세요.",
+						ephemeral: true,
+					});
+				}
 			}
-
-			// 재생 시작
-			if (!queue.node.isPlaying()) await queue.node.play();
-
-			await interaction.reply("재연결이 완료되었습니다.");
 		} catch (error) {
 			console.error("재연결에 실패했습니다:", error);
-			await interaction.reply("재연결에 실패했습니다. 다시 시도해주세요.");
+
+			// 이미 응답이 전송되었는지 확인 후 추가 응답 방지
+			if (!interaction.replied && !interaction.deferred) {
+				await interaction.reply("재연결에 실패했습니다. 다시 시도해주세요.");
+			}
 		}
 	},
 };
