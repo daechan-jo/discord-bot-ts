@@ -3,6 +3,7 @@ import { ApplicationCommandOptionType, EmbedBuilder } from "discord.js";
 import { Command } from "../../Typings";
 import { SoundCloudExtractor } from "@discord-player/extractor";
 import { YoutubeiExtractor } from "discord-player-youtubei";
+import { Track } from "discord-player";
 
 let player: Player | null = null;
 
@@ -71,7 +72,7 @@ export const slash: Command = {
 
 				const voiceChannel = interaction.member.voice.channel;
 				if (voiceChannel && voiceChannel.isVoiceBased()) {
-					await voiceChannel.setBitrate(64000);
+					await voiceChannel.setBitrate(32000);
 				}
 			} catch (error) {
 				console.error(`음성 채널에 연결하지 못했습니다: ${error}`);
@@ -104,7 +105,40 @@ export const slash: Command = {
 				} catch (error) {
 					console.error("메시지를 삭제하는 동안 오류가 발생했습니다:", error);
 				}
-			}, 5000); // 5000ms = 5초
+			}, 5000);
+
+			setInterval(async () => {
+				if (queue.connection) {
+					const ping = queue.connection.ping.ws; // ws 핑 값을 확인
+
+					if (ping && ping > 250) { // ws 핑 값이 250ms 이상일 경우
+						console.warn(`핑이 높습니다: ${ping}ms. 연결을 재설정합니다.`);
+
+						// 현재 대기열의 트랙을 배열로 변환하여 임시로 저장
+						const currentTracks = queue.tracks.toArray() as Track[]; // 배열로 변환
+						const currentTrack = queue.currentTrack as Track | null;
+
+						// 현재 연결을 끊고 다시 연결 시도
+						queue.connection.disconnect();
+						try {
+							await queue.connect(interaction.member.voice.channel!);
+							console.log("재연결에 성공했습니다.");
+
+							// 대기열 복원
+							if (currentTrack) queue.addTrack(currentTrack); // 현재 재생 중인 트랙 추가
+							for (const track of currentTracks) {
+								queue.addTrack(track); // 남은 대기열 트랙들을 개별적으로 추가
+							}
+
+							// 재생 시작
+							if (!queue.node.isPlaying()) await queue.node.play();
+						} catch (error) {
+							console.error("재연결에 실패했습니다:", error);
+						}
+					}
+				}
+			}, 60000); // 60초마다 핑 체크
+
 
 		} catch (error) {
 			console.error(`재생 명령을 처리하는 동안 오류가 발생했습니다: ${error}`);
