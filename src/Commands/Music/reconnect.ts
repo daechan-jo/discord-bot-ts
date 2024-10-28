@@ -1,12 +1,16 @@
 import {CommandInteraction, GuildMember} from "discord.js";
 import {Command} from "../../Typings";
-import {Track} from "discord-player";
+import {Player, Track} from "discord-player";
 
 export const slash: Command = {
 	name: "노지재연결",
 	description: "음성 연결을 재설정합니다.",
 	voiceChannel: true,
 	run: async ({ client, interaction }: { client: any; interaction: CommandInteraction }) => {
+		if (!client.player) {
+			client.player = new Player(client);
+		}
+
 		const player = client.player;
 		let queue = player.nodes.get(interaction.guildId!);
 
