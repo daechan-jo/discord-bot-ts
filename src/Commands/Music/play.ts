@@ -107,21 +107,36 @@ export const slash: Command = {
 				}
 			}, 5000);
 
+
 			setInterval(async () => {
-				if (queue.connection) {
+				if (queue && queue.connection) { // queue가 null이 아닐 경우에만 접근
 					const ping = queue.connection.ping.ws; // ws 핑 값을 확인
 
 					if (ping && ping > 250) { // ws 핑 값이 250ms 이상일 경우
 						console.warn(`핑이 높습니다: ${ping}ms. 연결을 재설정합니다.`);
 
 						// 현재 대기열의 트랙을 배열로 변환하여 임시로 저장
-						const currentTracks = queue.tracks.toArray() as Track[]; // 배열로 변환
-						const currentTrack = queue.currentTrack as Track | null;
+						const currentTracks = queue.tracks.toArray() as Track<unknown>[]; // 배열로 변환
+						const currentTrack = queue.currentTrack as Track<unknown> | null;
 
-						// 현재 연결을 끊고 다시 연결 시도
-						queue.connection.disconnect();
+						// 대기열 비우기 및 연결 해제
+						queue.clear(); // 대기열 초기화
+						queue.connection.disconnect(); // 연결 해제
+
+						// 새로운 대기열 생성
+						queue = player!.nodes.create(interaction.guild!, {
+							metadata: {
+								channel: interaction.channel,
+								requestedBy: interaction.member,
+							},
+							leaveOnEnd: true,
+							leaveOnEmpty: true,
+							leaveOnStop: true,
+							volume: 60,
+						});
+
 						try {
-							await queue.connect(interaction.member.voice.channel!);
+							await queue.connect(interaction.member.voice.channel!); // 채널에 재연결
 							console.log("재연결에 성공했습니다.");
 
 							// 대기열 복원
